@@ -1,0 +1,26 @@
+To deploy UAA without a dependency on TAS:
+
+- update the existing manifest by:
+  - remove the route-registrar job from the uaa instance group
+  - change the property uaa.url to a hostname within an domain you control
+- deploy devconnect and get the CID of the UAA vm (bosh vms will show you this)
+  - NOTE: this deploy should fail, you just need the VM
+- create an external IP on your IAAS and attach it to the CID
+- create a network tag and attach it to the UAA vm
+- create a firewall rule and attach it to the network tag
+  - ensure tcp ingress to 8443 is allowed from desried Source IP Ranges (0.0.0.0/0 to allow all IP origins)
+- create a DNS record to resolve the domain chosen for uaa.url to the external IP
+- Repeat the steps in UAA TAS free for the DevConnect Job including:
+  - remove route-registrar
+  - attach external IP to the DevConnect VM (you must deploy first)
+  - ensure vm has tcp ingress to 8888 or whatever port you choose for `devconnect_server_app_port` (in your varsfile)
+  - create a DNS record to resolve the external IP
+- change devconnect_auth_base_url to the uaa hostname with the port e.g https://tas-free-uaa.redlands.cf-app.com:8443
+- configure TLS:
+  - set `devconnect_server_tls_cert` as a property of the `devconnect` job
+  - set `devconnect_server_tls_private_key` as a property of the `devconnect` job
+  - Author's Note: we MAY be able to use the BOSH generated `devconnect-ssl.cert` and `devconnect-ssl.key` variables
+- remove routing release from `releases:` in manifest
+- redeploy!
+
+NOTE: technically by the end of this, you do not need any references to "routing" or "route-registrar" anywhere in your manifest
